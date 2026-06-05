@@ -1,269 +1,212 @@
-# infoAdmin — Panel de Administración
+# infoAdmin — Panel Administrativo de Notificaciones
 
-Sistema de mensajería interna empresarial. Permite enviar mensajes, PDFs e imágenes a todas las PCs de la organización en tiempo real.
-
----
-
-## Requisitos del servidor
-
-| Herramienta | Versión mínima |
-|-------------|---------------|
-| PHP         | 8.3+          |
-| Composer    | 2.x           |
-| SQLite      | Incluido en PHP (predeterminado) |
-| Node.js     | No requerido (Bootstrap vía CDN) |
-
-> Para usar **MySQL** en producción ver sección [Cambiar a MySQL](#cambiar-a-mysql).
+Panel web Laravel para enviar mensajes a las PCs de los empleados en tiempo real mediante WebSocket (Reverb).
 
 ---
 
-## Instalación desde cero
-
-### 1. Instalar dependencias PHP
-
-```bash
-cd infoAdmin
-composer install
-```
-
-### 2. Configurar el entorno
-
-Copiar `.env.example` a `.env` si no existe:
-
-```bash
-copy .env.example .env
-php artisan key:generate
-```
-
-> Si ya existe `.env` con la clave generada, **no ejecutar** `key:generate`.
-
-### 3. Crear la base de datos y el usuario admin
-
-```bash
-php artisan migrate --seed
-```
-
-Esto crea todas las tablas y el usuario administrador:
-
-| Campo    | Valor           |
-|----------|-----------------|
-| Email    | admin@admin.com |
-| Password | password        |
-
-> Cambiar la contraseña tras el primer acceso.
-
-### 4. Crear carpeta de uploads
-
-```bash
-mkdir public\uploads
-```
-
-La carpeta ya existe si el proyecto fue clonado de este repositorio.
-
----
-
-## Levantar el sistema
-
-Se necesitan **2 terminales** abiertas simultáneamente:
-
-### Terminal 1 — Servidor web Laravel
-
-```bash
-cd infoAdmin
-php artisan serve
-```
-
-Panel disponible en: **http://localhost:8000**
-
-### Terminal 2 — Servidor WebSocket Reverb
-
-```bash
-cd infoAdmin
-php artisan reverb:start
-```
-
-Servidor WebSocket escuchando en: **localhost:8080**
-
-> Ambos procesos deben estar corriendo para que los mensajes lleguen a las PCs en tiempo real.
-
----
-
-## Usar el panel
-
-### Login
-- Ir a `http://localhost:8000/login`
-- Ingresar con `admin@admin.com` / `password`
-
-### Enviar un mensaje
-1. Ir a **Enviar Mensaje** (menú lateral)
-2. Elegir el tipo: Notificación / Instructivo / Urgente / Reunión
-3. Completar Título y Mensaje
-4. Adjuntar archivo PDF, JPG, PNG o GIF (opcional, máx. 20 MB)
-5. Clic en **Enviar a todas las PCs**
-6. El toast confirma cuántas PCs recibieron el mensaje
-
-### Ver historial
-- Ir a **Historial** — tabla paginada con todos los mensajes enviados
-- Filtrar por tipo y rango de fechas
-- Clic en una fila para ver el detalle completo
-
-### Ver confirmaciones
-- Ir a **Confirmaciones**
-- Seleccionar un mensaje del dropdown
-- Ver qué PCs recibieron / vieron / descargaron el mensaje
-
----
-
-## Estructura de archivos
+## Arquitectura
 
 ```
-infoAdmin/
-├── app/
-│   ├── Events/
-│   │   └── MensajeEnviado.php        <- Evento broadcast a Reverb
-│   ├── Http/Controllers/
-│   │   ├── Auth/LoginController.php  <- Login / logout
-│   │   ├── PanelController.php       <- Enviar mensajes
-│   │   ├── HistorialController.php   <- Historial
-│   │   ├── ConfirmacionesController.php
-│   │   └── Api/
-│   │       ├── RegistroController.php       <- Recibe heartbeat de las PCs
-│   │       └── ConfirmacionApiController.php <- Recibe confirmaciones del .exe
-│   └── Models/
-│       ├── Mensaje.php
-│       ├── Confirmacion.php
-│       └── PcActiva.php              <- Registra PCs conectadas
-├── database/
-│   ├── migrations/                   <- Tablas: mensajes, confirmaciones, pcs_activas
-│   └── database.sqlite               <- Base de datos (SQLite por defecto)
-├── public/
-│   └── uploads/                      <- PDFs e imagenes subidos por el admin
-├── resources/views/
-│   ├── layouts/app.blade.php         <- Layout Bootstrap 5
-│   ├── auth/login.blade.php
-│   ├── panel.blade.php
-│   ├── historial.blade.php
-│   └── confirmaciones.blade.php
-├── routes/
-│   ├── web.php                       <- Rutas del panel web
-│   ├── api.php                       <- Rutas para el cliente Python
-│   └── channels.php                  <- Canal broadcast 'mensajes'
-└── .env                              <- Configuracion del entorno
+infoAdmin (Docker/Coolify)
+├── Nginx     :8000  →  Panel web (detrás de Traefik con SSL)
+├── php-fpm          →  Procesa PHP
+├── Reverb    :8081  →  WebSocket para clientes infoDesk
+├── queue:work       →  Procesa trabajos en cola (database)
+└── schedule:work    →  Ejecuta mensajes programados cada minuto
 ```
 
 ---
 
-## Variables de entorno importantes (.env)
+## Variables de entorno (.env)
 
-```env
-APP_URL=http://localhost:8000         # URL publica del servidor
+### Aplicación
 
-DB_CONNECTION=sqlite                  # Base de datos
+| Variable | Descripción |
+|----------|-------------|
+| `APP_NAME` | Nombre de la aplicación |
+| `APP_ENV` | `local` en desarrollo, `production` en producción |
+| `APP_KEY` | Clave de cifrado — generada con `php artisan key:generate` |
+| `APP_DEBUG` | `true` en desarrollo, `false` en producción |
+| `APP_URL` | URL pública del panel (ej: `https://notificaciones.beni.gob.bo`) |
 
-BROADCAST_CONNECTION=reverb           # Motor WebSocket
+### Base de datos
 
-REVERB_APP_KEY=xk2z9tboo2ajmwtwl2qn  # Clave que deben tener los clientes .exe
-REVERB_HOST=localhost
-REVERB_PORT=8080
-REVERB_SCHEME=http                    # Cambiar a https en produccion
-```
+| Variable | Descripción |
+|----------|-------------|
+| `DB_CONNECTION` | `mysql` |
+| `DB_HOST` | Host de la base de datos |
+| `DB_PORT` | `3306` |
+| `DB_DATABASE` | Nombre de la base de datos |
+| `DB_USERNAME` | Usuario |
+| `DB_PASSWORD` | Contraseña |
 
-> El `REVERB_APP_KEY` debe coincidir exactamente con el `app_key` en el `config.ini` del cliente MensaDesk.
+### API Token (infoDesk)
+
+| Variable | Descripción |
+|----------|-------------|
+| `API_TOKEN` | Token secreto enviado por los clientes infoDesk en cada request HTTP. Debe coincidir exactamente con `_API_TOKEN` compilado dentro del exe. Si se cambia hay que **recompilar y redistribuir** el exe. |
+
+### Reverb (WebSocket)
+
+| Variable | Valor en producción | Descripción |
+|----------|---------------------|-------------|
+| `REVERB_APP_ID` | `infodesk` | Identificador de la app Reverb |
+| `REVERB_APP_KEY` | `iKW9AMG...` | Clave pública del canal. Debe coincidir con `_SERVIDOR_APP_KEY` compilado en el exe. Si se cambia hay que recompilar el exe. |
+| `REVERB_APP_SECRET` | `jTUVBz...` | Secreto usado por Laravel para firmar broadcasts. Solo vive en el servidor, **nunca** en el cliente. |
+| `REVERB_HOST` | `0.0.0.0` | Interface de escucha. `0.0.0.0` es obligatorio en Docker para aceptar conexiones externas. |
+| `REVERB_PORT` | `8081` | Puerto del WebSocket. Debe coincidir con el Port Mapping de Coolify. |
+| `REVERB_SCHEME` | `http` | Siempre `http` dentro del contenedor. El SSL lo maneja Traefik externamente. |
+
+### Cola, sesiones y caché
+
+| Variable | Valor | Descripción |
+|----------|-------|-------------|
+| `BROADCAST_CONNECTION` | `reverb` | Motor de broadcast en tiempo real |
+| `QUEUE_CONNECTION` | `database` | Cola de trabajos en base de datos |
+| `SESSION_DRIVER` | `database` | Sesiones en base de datos |
+| `CACHE_STORE` | `database` | Caché en base de datos |
 
 ---
 
-## APIs para el cliente Python
+## Mensajes programados
 
-| Método | Ruta              | Descripción |
-|--------|-------------------|-------------|
-| POST   | /api/registro     | PC registra su presencia (heartbeat cada 60s) |
-| POST   | /api/confirmacion | PC confirma recibido / visto / descargado |
-| GET    | /api/pcs          | Cantidad de PCs activas (usada por el panel) |
+Los mensajes programados usan el scheduler de Laravel definido en `routes/console.php`:
 
----
-
-## Agregar más administradores
-
-**Opción 1 — Artisan Tinker (recomendado):**
-```bash
-php artisan tinker
-```
 ```php
-\App\Models\User::create([
-    'name'     => 'Otro Admin',
-    'email'    => 'otro@empresa.com',
-    'password' => \Illuminate\Support\Facades\Hash::make('contraseña_segura'),
-]);
+Schedule::command('mensajes:enviar-programados')->everyMinute();
 ```
 
-**Opción 2 — Editar DatabaseSeeder y re-sembrar:**
-Editar `database/seeders/DatabaseSeeder.php` y agregar otro `updateOrCreate`, luego:
-```bash
-php artisan db:seed
-```
+El comando revisa la tabla de mensajes con `estado = 'programado'` y `scheduled_at <= now()`, los emite por broadcast y los marca como `enviado`.
+
+**Requisito:** el proceso `schedule:work` debe estar corriendo en el servidor. En Docker está configurado como programa en supervisord.
 
 ---
 
-## Cambiar a MySQL
+## Despliegue con Docker (Coolify)
 
-1. Crear la base de datos en MySQL:
-```sql
-CREATE DATABASE mensapanel CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+### Procesos en el contenedor (supervisord)
 
-2. Editar `.env`:
+| Proceso | Comando | Puerto |
+|---------|---------|--------|
+| `nginx` | `nginx -g "daemon off;"` | `8000` |
+| `php-fpm` | `php-fpm -F` | interno |
+| `queue-worker` | `php artisan queue:work` | — |
+| `reverb` | `php artisan reverb:start --host=0.0.0.0 --port=$REVERB_PORT` | `8081` |
+| `scheduler` | `php artisan schedule:work` | — |
+
+### Configuración de red en Coolify
+
+| Campo | Valor |
+|-------|-------|
+| Ports Exposes | `8000` |
+| Port Mappings | `8081:8081` |
+
+- Puerto `8000` → gestionado por Traefik, accesible en `https://dominio` con SSL.
+- Puerto `8081` → expuesto directamente para WebSocket `ws://` desde los clientes infoDesk.
+
+> El puerto 8081 se elige porque el 8080 estaba ocupado por otro contenedor en el servidor.
+
+### Variables de entorno mínimas en Coolify
+
 ```env
-# Comentar estas dos lineas:
-# DB_CONNECTION=sqlite
-# DB_DATABASE=...ruta...database.sqlite
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://notificaciones.beni.gob.bo
 
-# Descomentar y completar estas:
 DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=mensapanel
-DB_USERNAME=root
-DB_PASSWORD=tu_contraseña
+DB_HOST=<host_db>
+DB_DATABASE=<nombre_db>
+DB_USERNAME=<usuario>
+DB_PASSWORD=<contraseña>
+
+REVERB_HOST=0.0.0.0
+REVERB_PORT=8081
+REVERB_SCHEME=http
+
+API_TOKEN=<token_secreto>
+REVERB_APP_KEY=<app_key>
+REVERB_APP_SECRET=<app_secret>
 ```
 
-3. Correr migraciones:
+### Entrypoint del contenedor
+
+Al iniciar el contenedor (`docker/entrypoint.sh`) se ejecuta en orden:
+1. Copia `.env.example` → `.env` si no existe
+2. Genera `APP_KEY` si falta
+3. Crea symlink de storage
+4. Espera hasta 60s a que la base de datos esté disponible
+5. Corre `php artisan migrate --force --seed`
+6. En producción: cachea config, rutas y vistas
+7. Arranca `supervisord` con todos los procesos
+
+---
+
+## Desarrollo local
+
+Necesitás 4 terminales:
+
 ```bash
-php artisan migrate --seed
+# Terminal 1 — Laravel
+php artisan serve --host=0.0.0.0 --port=8000
+
+# Terminal 2 — Reverb
+php artisan reverb:start --host=0.0.0.0 --port=8081
+
+# Terminal 3 — Cola
+php artisan queue:work
+
+# Terminal 4 — Scheduler
+php artisan schedule:work
+```
+
+`.env` local:
+
+```env
+APP_URL=http://localhost:8000
+REVERB_HOST=0.0.0.0
+REVERB_PORT=8081
+REVERB_SCHEME=http
+```
+
+Panel disponible en: `http://localhost:8000/panel`
+
+---
+
+## APIs para infoDesk (.exe)
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/api/registro` | PC registra su presencia (heartbeat cada 30s) |
+| `POST` | `/api/confirmacion` | PC confirma recibido/visto/descargado |
+| `GET` | `/api/version` | Versión actual del exe (auto-update) |
+
+Todas requieren el header `X-Api-Token: <API_TOKEN>`.
+
+---
+
+## Estructura Docker
+
+```
+docker/
+├── entrypoint.sh               <- inicio del contenedor
+├── nginx/
+│   └── default.conf            <- HTTP en :8000 → php-fpm
+├── php/
+│   ├── php.ini
+│   └── php-fpm.conf
+└── supervisor/
+    └── supervisord.conf        <- nginx, php-fpm, queue, reverb, scheduler
 ```
 
 ---
 
-## Despliegue en produccion (VPS / servidor)
+## Solución de problemas
 
-### Puertos que deben estar abiertos en el firewall
-
-| Puerto | Protocolo | Uso |
-|--------|-----------|-----|
-| 80     | HTTP      | Panel de administracion |
-| 443    | HTTPS     | Panel con SSL (recomendado) |
-| 8080   | WebSocket | Conexiones de los clientes MensaDesk |
-
-### Pasos adicionales
-1. Configurar Nginx para servir la carpeta `public/`
-2. Cambiar `APP_ENV=production` y `APP_DEBUG=false` en `.env`
-3. Cambiar `APP_URL` al dominio o IP real del servidor
-4. Cambiar `REVERB_HOST` al dominio o IP real
-5. Cambiar `REVERB_SCHEME=https` con certificado SSL para WebSocket seguro
-6. Ejecutar `php artisan optimize` para cachear rutas y configuracion
-7. Usar Supervisor o systemd para mantener `reverb:start` corriendo en background
-
----
-
-## Solucion de problemas
-
-| Problema | Solucion |
-|----------|----------|
-| "No hay PCs conectadas" | Verificar que `reverb:start` esta corriendo y el `app_key` del cliente coincide con `REVERB_APP_KEY` |
-| Error 500 al enviar | Revisar `storage/logs/laravel.log` |
-| Archivo no se sube | Verificar que existe `public/uploads/` con permisos de escritura |
-| Login falla | Correr `php artisan db:seed` para recrear el usuario admin |
-| WebSocket no conecta | Verificar que el puerto 8080 no esta bloqueado por firewall |
-| Mensajes no llegan al .exe | Verificar que `REVERB_APP_KEY` en `.env` del servidor coincide con `app_key` en `config.ini` del cliente |
-
-"# infoAdmin" 
-"# infoAdmin" 
+| Problema | Causa probable | Solución |
+|----------|---------------|----------|
+| Mensajes programados no se envían | `schedule:work` no corre | En terminal Coolify: `ps aux \| grep schedule` |
+| Clientes no reciben mensajes | Reverb no corre o puerto bloqueado | `ps aux \| grep reverb` + verificar Port Mapping `8081:8081` |
+| Error 4001 en log de infoDesk | `REVERB_APP_KEY` no coincide con el exe | Verificar que la variable en Coolify y `_SERVIDOR_APP_KEY` en `cliente.py` son iguales |
+| Deploy falla con "port already allocated" | Puerto ocupado por otro contenedor | Cambiar `REVERB_PORT` y Port Mapping a un puerto libre (ej: `8081`) |
+| Panel no carga | Nginx o php-fpm caído | `cat /var/log/supervisor/nginx.err.log` en terminal Coolify |
+| Login falla | Usuario no creado | Verificar que `migrate --seed` corrió en entrypoint |
