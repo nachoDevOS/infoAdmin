@@ -28,7 +28,7 @@ done
 
 if nc -z "${DB_HOST}" "${DB_PORT}" 2>/dev/null; then
     echo "[entrypoint] Database ready. Running migrations..."
-    php artisan migrate --force || echo "[entrypoint] WARNING: migrations failed, continuing anyway."
+    php artisan migrate --force --seed || echo "[entrypoint] WARNING: migrations/seed failed, continuing anyway."
 else
     echo "[entrypoint] WARNING: database unreachable after 60s, skipping migrations."
 fi
