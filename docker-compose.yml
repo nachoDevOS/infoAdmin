@@ -1,0 +1,65 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"       # HTTP
+      - "8080:8080"   # WebSocket (Reverb)
+    environment:
+      APP_NAME: ${APP_NAME:-InfoAdmin}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_KEY: ${APP_KEY}
+      APP_URL: ${APP_URL:-http://localhost}
+
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-infoadmin}
+      DB_USERNAME: ${DB_USERNAME:-infoadmin}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+
+      SESSION_DRIVER: database
+      QUEUE_CONNECTION: database
+      CACHE_STORE: database
+      BROADCAST_CONNECTION: reverb
+
+      REVERB_APP_ID: ${REVERB_APP_ID:-infodesk}
+      REVERB_APP_KEY: ${REVERB_APP_KEY:-changeme_key}
+      REVERB_APP_SECRET: ${REVERB_APP_SECRET:-changeme_secret}
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: ${REVERB_PORT:-8080}
+      REVERB_SCHEME: http
+
+      API_TOKEN: ${API_TOKEN}
+      CLIENT_VERSION: ${CLIENT_VERSION:-1.0.0}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - app_storage:/var/www/html/storage/app
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-infoadmin}
+      MYSQL_USER: ${DB_USERNAME:-infoadmin}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootsecret}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "--password=${DB_ROOT_PASSWORD:-rootsecret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  app_storage:

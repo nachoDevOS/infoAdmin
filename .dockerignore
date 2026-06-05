@@ -1,0 +1,47 @@
+# Git
+.git
+.github
+.gitignore
+.gitattributes
+
+# Environment (never bake secrets into the image)
+.env
+.env.*
+!.env.example
+
+# Dependencies installed by build stages
+node_modules
+vendor
+
+# Built assets (regenerated inside Docker)
+public/build
+public/hot
+public/storage
+
+# Laravel caches (regenerated on startup)
+bootstrap/cache/*.php
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+storage/*.key
+storage/pail
+
+# Dev/IDE
+.vscode
+.idea
+.cursor
+.nova
+.zed
+.phpactor.json
+
+# Test artefacts
+.phpunit.cache
+.phpunit.result.cache
+phpunit.xml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Local Docker files
+docker-compose.override.yml
