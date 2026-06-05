@@ -266,3 +266,4 @@ php artisan migrate --seed
 | Mensajes no llegan al .exe | Verificar que `REVERB_APP_KEY` en `.env` del servidor coincide con `app_key` en `config.ini` del cliente |
 
 "# infoAdmin" 
+"# infoAdmin" 
