@@ -98,7 +98,7 @@ COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN sed -i 's/\r//' /usr/local/bin/entrypoint.sh \
     && chmod +x /usr/local/bin/entrypoint.sh
 
-# Port 80 = HTTP (Nginx), Port 8080 = WebSocket (Reverb)
-EXPOSE 80 8080
+# Port 8000 = HTTP (Nginx), Port 8080 = WebSocket (Reverb)
+EXPOSE 8000 8080
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
