@@ -1,0 +1,629 @@
+@extends('layouts.app')
+
+@section('title', 'Panel de Envío')
+
+@push('styles')
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+    /* ── Quill editor ─────────────────────────────────────── */
+    .ql-container {
+        border-radius: 0 0 4px 4px !important;
+        border-color: #D9E0E7 !important;
+        font-family: 'Segoe UI', system-ui, sans-serif !important;
+        font-size: .9rem !important;
+        min-height: 160px;
+        background: #fff;
+    }
+    .ql-toolbar {
+        border-radius: 4px 4px 0 0 !important;
+        border-color: #D9E0E7 !important;
+        background: #F7F9FB;
+        padding: 8px 10px !important;
+    }
+    .ql-toolbar .ql-formats { margin-right: 10px !important; }
+    .ql-toolbar button:hover, .ql-toolbar button.ql-active,
+    .ql-toolbar .ql-picker-label:hover {
+        color: #22A7F0 !important;
+    }
+    .ql-toolbar button:hover .ql-stroke,
+    .ql-toolbar button.ql-active .ql-stroke {
+        stroke: #22A7F0 !important;
+    }
+    .ql-toolbar button:hover .ql-fill,
+    .ql-toolbar button.ql-active .ql-fill {
+        fill: #22A7F0 !important;
+    }
+    .ql-editor { min-height: 160px; padding: 12px 16px !important; }
+    .ql-editor.ql-blank::before {
+        color: #94A3B8 !important;
+        font-style: normal !important;
+    }
+    /* Borde focus */
+    #quill-wrapper:focus-within .ql-toolbar,
+    #quill-wrapper:focus-within .ql-container {
+        border-color: #22A7F0 !important;
+    }
+    #quill-wrapper:focus-within .ql-toolbar {
+        box-shadow: 3px 0 0 3px rgba(34,167,240,.12), -3px 0 0 3px rgba(34,167,240,.12), 0 -3px 0 3px rgba(34,167,240,.12);
+    }
+
+    /* ── Tipo de mensaje ──────────────────────────────────── */
+    .tipo-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+    .tipo-btn input[type=radio] { display: none; }
+    .tipo-btn label {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        cursor: pointer;
+        min-height: 42px;
+        padding: .48rem .6rem;
+        border-radius: 4px;
+        border: 1px solid #D9E0E7;
+        font-weight: 600;
+        font-size: .76rem;
+        transition: all .18s;
+        user-select: none;
+        background: #fff;
+        color: #64748B;
+        width: 100%;
+    }
+    .tipo-btn label i { font-size: .9rem; }
+    .tipo-btn label:hover { border-color: #B8C4CF; background: #F7F9FB; color: #334155; }
+    .tipo-btn input:checked + label {
+        border-color: var(--tipo-color);
+        color: var(--tipo-color);
+        background: color-mix(in srgb, var(--tipo-color) 8%, white);
+    }
+
+    /* ── Inputs ──────────────────────────────────────────── */
+    .form-control-mp {
+        border: 1px solid #D9E0E7;
+        border-radius: 4px;
+        padding: .65rem 1rem;
+        font-size: .9rem;
+        transition: border-color .18s, box-shadow .18s;
+        background: #fff;
+    }
+    .form-control-mp:focus {
+        border-color: #22A7F0;
+        box-shadow: 0 0 0 3px rgba(34,167,240,.14);
+        outline: none;
+        background: #fff;
+    }
+    .form-control-mp[readonly] {
+        background: #F7F9FB;
+        color: #52616F;
+        cursor: default;
+    }
+    textarea.form-control-mp { resize: vertical; }
+
+    .char-counter { font-size: .75rem; color: #94A3B8; }
+    .form-label-mp { font-size: .82rem; font-weight: 600; color: #374151; margin-bottom: .4rem; }
+
+    /* ── Zona upload ─────────────────────────────────────── */
+    #zona-upload {
+        border: 2px dashed #CBD5E1;
+        border-radius: 4px;
+        padding: 1.8rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all .2s;
+        background: #F8FAFC;
+    }
+    #zona-upload:hover, #zona-upload.drag-over {
+        border-color: #22A7F0;
+        background: #EAF8FE;
+    }
+    #zona-upload .upload-icon {
+        width: 48px; height: 48px;
+        background: #E8EEF6;
+        border-radius: 4px;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto .8rem;
+        font-size: 1.3rem;
+        color: #22A7F0;
+        transition: all .2s;
+    }
+    #zona-upload:hover .upload-icon { background: #D6F1FD; }
+    #preview-archivo { max-width: 100%; max-height: 140px; border-radius: 4px; margin-top: .5rem; }
+
+    /* ── Card archivos seleccionado ──────────────────────── */
+    .archivo-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: #EAF8FE;
+        border: 1px solid #BEE9FB;
+        border-radius: 4px;
+        padding: .7rem 1rem;
+        margin-top: .75rem;
+    }
+    .archivo-card .archivo-icon {
+        width: 38px; height: 38px;
+        border-radius: 4px;
+        background: #D6F1FD;
+        display: flex; align-items: center; justify-content: center;
+        color: #1677A8;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+    .archivo-card .archivo-meta { flex-grow: 1; min-width: 0; }
+    .archivo-card .archivo-nombre { font-size: .83rem; font-weight: 600; color: #1E3A5F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .archivo-card .archivo-size { font-size: .75rem; color: #64748B; }
+    .btn-quitar-archivo {
+        background: none;
+        border: none;
+        color: #94A3B8;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        transition: all .15s;
+        flex-shrink: 0;
+    }
+    .btn-quitar-archivo:hover { background: #FEE2E2; color: #B91C1C; }
+
+    /* ── Botón enviar ────────────────────────────────────── */
+    .send-actions {
+        border-top: 1px solid #EEF1F5;
+        padding-top: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+    .send-note {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        color: #8A99A8;
+        font-size: .8rem;
+    }
+    .send-note i { color: #22A7F0; }
+    #btn-enviar {
+        width: auto;
+        min-width: 178px;
+        padding: .55rem 1rem;
+        font-size: .86rem;
+        letter-spacing: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        box-shadow: 0 2px 6px rgba(34,167,240,.18);
+    }
+    #btn-enviar i { font-size: .82rem; }
+    #btn-enviar:disabled { opacity: .72; cursor: wait; }
+    @media (max-width: 576px) {
+        .send-actions {
+            align-items: stretch;
+            flex-direction: column;
+        }
+        #btn-enviar { width: 100%; }
+    }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast-mp {
+        border-radius: 4px;
+        border: none;
+        font-size: .87rem;
+        padding: .75rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .toast-mp.ok  { background: #DCFCE7; color: #166534; }
+    .toast-mp.err { background: #FEE2E2; color: #991B1B; }
+    .toast-mp .toast-icon { font-size: 1rem; }
+
+    /* ── Historial mini ──────────────────────────────────── */
+    .hm-item {
+        padding: .7rem 1rem;
+        border-bottom: 1px solid #F1F5F9;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background .15s;
+    }
+    .hm-item:last-child { border-bottom: none; }
+    .hm-item:hover { background: #F8FAFC; }
+    .hm-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .hm-titulo { font-size: .82rem; font-weight: 600; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+    .hm-meta   { font-size: .72rem; color: #94A3B8; }
+
+    .seccion-titulo {
+        font-size: .95rem;
+        font-weight: 700;
+        color: #1E293B;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .seccion-titulo i { color: #22A7F0; font-size: .9rem; }
+</style>
+@endpush
+
+@section('content')
+<div class="row g-4">
+
+    {{-- ── Formulario principal ──────────────────────────── --}}
+    <div class="col-lg-8">
+        <div class="card card-mp">
+            <div class="card-header bg-white border-0 px-4 pt-4 pb-3 d-flex align-items-center justify-content-between">
+                <span class="seccion-titulo">
+                    <i class="fas fa-paper-plane"></i>Nuevo mensaje
+                </span>
+                <span class="pc-badge" id="pc-badge">
+                    <i class="fas fa-circle" style="font-size:.55rem;color:#26B99A;"></i>
+                    <span id="pc-count">...</span> PC(s) conectadas
+                </span>
+            </div>
+
+            <div class="card-body px-4 pb-4 pt-1">
+
+                {{-- Toasts --}}
+                <div id="toast-ok" class="toast-mp ok d-none mb-3">
+                    <i class="fas fa-check-circle toast-icon"></i>
+                    Mensaje enviado a <strong id="toast-pcs" class="mx-1">0</strong> PC(s) correctamente.
+                </div>
+                <div id="toast-err" class="toast-mp err d-none mb-3">
+                    <i class="fas fa-exclamation-circle toast-icon"></i>
+                    <span id="toast-err-msg">Error al enviar.</span>
+                </div>
+
+                <form id="form-envio" enctype="multipart/form-data">
+                    @csrf
+
+                    {{-- Tipo --}}
+                    <div class="mb-4">
+                        <label class="form-label-mp">Tipo de mensaje</label>
+                        <div class="tipo-grid" style="grid-template-columns: repeat({{ min(count($tipos), 4) }}, 1fr);">
+                            @foreach($tipos as $i => $t)
+                            <div class="tipo-btn">
+                                <input type="radio" name="tipo" id="tipo_{{ $t->slug }}" value="{{ $t->slug }}"
+                                       {{ $i === 0 ? 'checked' : '' }}
+                                       data-color="{{ $t->color }}">
+                                <label for="tipo_{{ $t->slug }}"
+                                       style="--tipo-color: {{ $t->color }}">
+                                    <i class="fas {{ $t->icono }}"></i>{{ $t->nombre }}
+                                </label>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    {{-- Título --}}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label-mp mb-0" for="titulo">Título <span class="text-danger">*</span></label>
+                            <span class="char-counter"><span id="cnt-titulo">0</span>/200</span>
+                        </div>
+                        <input type="text" name="titulo" id="titulo" class="form-control form-control-mp"
+                               maxlength="200" placeholder="Asunto del mensaje" required>
+                    </div>
+
+                    {{-- Cuerpo --}}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label-mp mb-0">Mensaje <span class="text-danger">*</span></label>
+                            <span class="char-counter"><span id="cnt-cuerpo">0</span> caracteres</span>
+                        </div>
+                        <div id="quill-wrapper">
+                            <div id="quill-editor"></div>
+                        </div>
+                        <input type="hidden" name="cuerpo" id="cuerpo">
+                    </div>
+
+                    {{-- Remitente --}}
+                    <div class="mb-4">
+                        <label class="form-label-mp" for="remitente">Remitente</label>
+                        <input type="text" id="remitente" name="remitente" class="form-control form-control-mp"
+                               value="{{ Auth::user()->name }}" readonly>
+                    </div>
+
+                    {{-- Destino --}}
+                    <div class="mb-4">
+                        <label class="form-label-mp">Destino</label>
+                        <select name="grupo_destino" class="form-control form-control-mp">
+                            <option value="">📢 Todas las PCs conectadas</option>
+                            @foreach($grupos as $g)
+                            <option value="{{ $g->nombre }}">👥 Solo grupo: {{ $g->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Programar envío --}}
+                    <div class="mb-4">
+                        <label class="form-label-mp">Programar envío <span class="text-muted fw-normal">(opcional — dejar vacío para enviar ahora)</span></label>
+                        <input type="datetime-local" name="scheduled_at" id="scheduled_at"
+                               class="form-control form-control-mp">
+                    </div>
+
+                    {{-- Archivo --}}
+                    <div class="mb-4">
+                        <label class="form-label-mp">Archivo adjunto <span class="text-muted fw-normal">(PDF, JPG, PNG, GIF — máx. 20 MB)</span></label>
+                        <div id="zona-upload" onclick="document.getElementById('archivo-input').click()">
+                            <div class="upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
+                            <p class="mb-0 fw-semibold" style="font-size:.85rem;color:#475569;">Arrastrá un archivo o hacé clic para seleccionar</p>
+                            <p class="mb-0 mt-1" style="font-size:.75rem;color:#94A3B8;">PDF, JPG, PNG, GIF</p>
+                        </div>
+                        <input type="file" id="archivo-input" name="archivo"
+                               accept=".pdf,.jpg,.jpeg,.png,.gif" class="d-none">
+
+                        <div id="archivo-info" class="d-none">
+                            <div class="archivo-card">
+                                <div class="archivo-icon">
+                                    <i id="archivo-icon-tipo" class="fas fa-file"></i>
+                                </div>
+                                <div class="archivo-meta">
+                                    <div class="archivo-nombre" id="archivo-nombre"></div>
+                                    <div class="archivo-size" id="archivo-size"></div>
+                                </div>
+                                <button type="button" class="btn-quitar-archivo" id="btn-quitar" title="Quitar archivo">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <img id="preview-archivo" src="" alt="" class="d-none mt-2 ms-1" style="max-height:120px;border-radius:4px;">
+                        </div>
+                    </div>
+
+                    <div class="send-actions">
+                        <div class="send-note">
+                            <i class="fas fa-broadcast-tower"></i>
+                            <span>Se enviará a todas las PCs conectadas.</span>
+                        </div>
+                        <button type="submit" id="btn-enviar" class="btn btn-mp fw-semibold">
+                            <span id="btn-text"><i class="fas fa-paper-plane"></i>Enviar</span>
+                            <span id="btn-spinner" class="d-none">
+                                <span class="spinner-border spinner-border-sm me-1"></span>Enviando
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- ── Panel lateral ─────────────────────────────────── --}}
+    <div class="col-lg-4 d-flex flex-column gap-4">
+
+        {{-- Stats rápido --}}
+        <div class="card card-mp">
+            <div class="card-body px-4 py-3">
+                <p class="form-label-mp mb-3">Actividad reciente</p>
+                <div id="historial-mini">
+                    @forelse($ultimosMensajes as $m)
+                    @php
+                        $dotColors = ['notificacion'=>'#22A7F0','instructivo'=>'#26B99A','urgente'=>'#E74C3C','reunion'=>'#F39C12'];
+                        $dot = $dotColors[$m->tipo] ?? '#22A7F0';
+                    @endphp
+                    <div class="hm-item">
+                        <div class="hm-dot" style="background:{{ $dot }};"></div>
+                        <div class="flex-grow-1 min-width-0">
+                            <div class="hm-titulo">{{ $m->titulo }}</div>
+                            <div class="hm-meta">{{ $m->created_at?->diffForHumans() }}</div>
+                        </div>
+                    </div>
+                    @empty
+                    <p class="text-center text-muted small py-2 mb-0">Sin mensajes aún</p>
+                    @endforelse
+                </div>
+                <div class="mt-3 pt-2 border-top">
+                    <a href="{{ route('historial') }}"
+                       class="btn btn-sm w-100 fw-semibold"
+                       style="border:1px solid #D9E0E7;border-radius:4px;color:#52616F;font-size:.8rem;">
+                        <i class="fas fa-history me-1"></i>Ver historial completo
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        {{-- Acceso rápido confirmaciones --}}
+        <div class="card card-mp">
+            <div class="card-body px-4 py-3 d-flex align-items-center gap-3">
+                <div style="width:42px;height:42px;background:#EAF8FE;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="fas fa-check-double" style="color:#22A7F0;"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold" style="font-size:.85rem;color:#1E293B;">Confirmaciones</div>
+                    <div style="font-size:.75rem;color:#94A3B8;">Ver estado de entrega</div>
+                </div>
+                <a href="{{ route('confirmaciones') }}"
+                   class="btn btn-sm btn-mp"
+                   style="border-radius:4px;font-size:.78rem;padding:.35rem .9rem;box-shadow:none;">
+                    Ver
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+@endsection
+
+@push('scripts')
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<script>
+const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+// ── Quill ──────────────────────────────────────────────────
+const quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    placeholder: 'Escribe el contenido del mensaje...',
+    modules: {
+        toolbar: [
+            ['bold', 'italic', 'underline'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'align': [] }],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+            [{ 'indent': '-1' }, { 'indent': '+1' }],
+            ['clean'],
+        ],
+    },
+});
+
+// Evitar que la toolbar robe el foco — permite toggle B/I/U mientras se escribe
+document.querySelector('.ql-toolbar').addEventListener('mousedown', e => e.preventDefault());
+
+quill.on('text-change', function() {
+    const texto = quill.getText().trim();
+    document.getElementById('cnt-cuerpo').textContent = texto.length;
+    document.getElementById('cuerpo').value = quill.root.innerHTML;
+});
+
+document.getElementById('titulo').addEventListener('input', function() {
+    document.getElementById('cnt-titulo').textContent = this.value.length;
+});
+
+// Drag & drop
+const zona = document.getElementById('zona-upload');
+zona.addEventListener('dragover',  e => { e.preventDefault(); zona.classList.add('drag-over'); });
+zona.addEventListener('dragleave', () => zona.classList.remove('drag-over'));
+zona.addEventListener('drop', e => {
+    e.preventDefault();
+    zona.classList.remove('drag-over');
+    const input = document.getElementById('archivo-input');
+    if (e.dataTransfer.files.length) {
+        const dt = new DataTransfer();
+        dt.items.add(e.dataTransfer.files[0]);
+        input.files = dt.files;
+        mostrarPreview(e.dataTransfer.files[0]);
+    }
+});
+document.getElementById('archivo-input').addEventListener('change', function() {
+    if (this.files.length) mostrarPreview(this.files[0]);
+});
+
+function mostrarPreview(file) {
+    document.getElementById('archivo-info').classList.remove('d-none');
+    document.getElementById('archivo-nombre').textContent = file.name;
+    document.getElementById('archivo-size').textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+
+    const ico = document.getElementById('archivo-icon-tipo');
+    const img = document.getElementById('preview-archivo');
+
+    if (file.type.startsWith('image/')) {
+        ico.className = 'fas fa-file-image';
+        img.src = URL.createObjectURL(file);
+        img.classList.remove('d-none');
+    } else if (file.type === 'application/pdf') {
+        ico.className = 'fas fa-file-pdf';
+        img.classList.add('d-none');
+    } else {
+        ico.className = 'fas fa-file';
+        img.classList.add('d-none');
+    }
+}
+
+document.getElementById('btn-quitar').addEventListener('click', function(e) {
+    e.stopPropagation();
+    document.getElementById('archivo-input').value = '';
+    document.getElementById('archivo-info').classList.add('d-none');
+    document.getElementById('preview-archivo').src = '';
+});
+
+// Envío
+document.getElementById('form-envio').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn     = document.getElementById('btn-enviar');
+    const text    = document.getElementById('btn-text');
+    const spin    = document.getElementById('btn-spinner');
+    const toastOk = document.getElementById('toast-ok');
+    const toastEr = document.getElementById('toast-err');
+
+    btn.disabled = true;
+    text.classList.add('d-none');
+    spin.classList.remove('d-none');
+    toastOk.classList.add('d-none');
+    toastEr.classList.add('d-none');
+
+    // Sincronizar contenido Quill al hidden input antes de enviar
+    const textoPlano = quill.getText().trim();
+    if (!textoPlano) {
+        document.getElementById('toast-err-msg').textContent = 'El mensaje no puede estar vacío.';
+        toastEr.classList.remove('d-none');
+        btn.disabled = false;
+        text.classList.remove('d-none');
+        spin.classList.add('d-none');
+        return;
+    }
+    document.getElementById('cuerpo').value = quill.root.innerHTML;
+
+    try {
+        const fd = new FormData(this);
+        const r  = await fetch('{{ route("panel.enviar") }}', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: fd,
+        });
+        const data = await r.json();
+
+        if (r.ok && data.ok) {
+            if (data.programado) {
+                document.getElementById('toast-pcs').textContent = '0';
+                toastOk.querySelector('strong').textContent = '0';
+                toastOk.innerHTML = `<i class="fas fa-clock toast-icon"></i> Mensaje programado para <strong>${data.scheduled_at}</strong>`;
+            } else {
+                document.getElementById('toast-pcs').textContent = data.enviados;
+            }
+            toastOk.classList.remove('d-none');
+            this.reset();
+            document.getElementById('cnt-titulo').textContent = '0';
+            document.getElementById('cnt-cuerpo').textContent = '0';
+            quill.setContents([]);
+            document.getElementById('cuerpo').value = '';
+            document.getElementById('archivo-info').classList.add('d-none');
+            recargarHistorialMini();
+        } else {
+            const msgs = data.errors ? Object.values(data.errors).flat().join(' ') : 'Error al enviar.';
+            document.getElementById('toast-err-msg').textContent = msgs;
+            toastEr.classList.remove('d-none');
+        }
+    } catch {
+        document.getElementById('toast-err-msg').textContent = 'Error de conexión.';
+        toastEr.classList.remove('d-none');
+    } finally {
+        btn.disabled = false;
+        text.classList.remove('d-none');
+        spin.classList.add('d-none');
+    }
+});
+
+// PC counter
+async function actualizarPcs() {
+    try {
+        const r = await fetch('{{ route("panel.pcs") }}');
+        const d = await r.json();
+        document.getElementById('pc-count').textContent = d.count;
+    } catch {}
+}
+actualizarPcs();
+setInterval(actualizarPcs, 3000);
+
+async function recargarHistorialMini() {
+    try {
+        const r = await fetch('{{ route("historial.data") }}');
+        const d = await r.json();
+        if (!d.data || !d.data.length) return;
+        const dots = {notificacion:'#22A7F0',instructivo:'#26B99A',urgente:'#E74C3C',reunion:'#F39C12'};
+        document.getElementById('historial-mini').innerHTML = d.data.slice(0,5).map(m => `
+            <div class="hm-item">
+                <div class="hm-dot" style="background:${dots[m.tipo]||'#22A7F0'};"></div>
+                <div class="flex-grow-1">
+                    <div class="hm-titulo">${m.titulo}</div>
+                    <div class="hm-meta">${m.created_at}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch {}
+}
+</script>
+@endpush
