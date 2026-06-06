@@ -330,14 +330,6 @@
                                value="{{ Auth::user()->name }}" readonly>
                     </div>
 
-                    {{-- Destino --}}
-                    <div class="mb-4">
-                        <label class="form-label-mp">Destino</label>
-                        <div class="form-control form-control-mp" style="background:#f8f9fa; color:#555;">
-                            📢 Todas las PCs conectadas
-                        </div>
-                    </div>
-
                     {{-- Programar envío --}}
                     <div class="mb-4">
                         <label class="form-label-mp">Programar envío <span class="text-muted fw-normal">(opcional — dejar vacío para enviar ahora)</span></label>
