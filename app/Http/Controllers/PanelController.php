@@ -101,6 +101,11 @@ class PanelController extends Controller
         ]);
     }
 
+    public function pcsVista(): \Illuminate\View\View
+    {
+        return view('pcs');
+    }
+
     public function pcsLista(): JsonResponse
     {
         $pcs = PcActiva::activas()

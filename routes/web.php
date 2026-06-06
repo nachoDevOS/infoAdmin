@@ -20,6 +20,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/panel/enviar', [PanelController::class, 'enviar'])->middleware('permission:mensajes.enviar')->name('panel.enviar');
     Route::get('/panel/pcs', [PanelController::class, 'pcs'])->name('panel.pcs');
     Route::get('/panel/pcs-lista', [PanelController::class, 'pcsLista'])->name('panel.pcs-lista');
+    Route::get('/pcs', [PanelController::class, 'pcsVista'])->name('pcs');
     Route::get('/historial', [HistorialController::class, 'index'])->middleware('permission:historial.ver')->name('historial');
     Route::get('/historial/data', [HistorialController::class, 'data'])->middleware('permission:historial.ver')->name('historial.data');
     Route::get('/confirmaciones', [ConfirmacionesController::class, 'index'])->middleware('permission:confirmaciones.ver')->name('confirmaciones');
