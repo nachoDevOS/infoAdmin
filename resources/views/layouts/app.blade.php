@@ -381,6 +381,16 @@
             @endif
         </ul>
         <div class="sidebar-divider"></div>
+
+        {{-- PCs en línea --}}
+        <p class="sidebar-section-label" style="margin-top:.4rem;">
+            PCs en línea &nbsp;<span id="sidebar-pcs-count" class="badge rounded-pill" style="background:#1D6A3A;font-size:.7rem;">0</span>
+        </p>
+        <div id="sidebar-pcs-lista" style="max-height:220px;overflow-y:auto;padding:0 6px 6px;">
+            <div style="color:#94A3B8;font-size:.8rem;padding:4px 0;">Cargando...</div>
+        </div>
+
+        <div class="sidebar-divider"></div>
         <p class="sidebar-section-label" style="margin-top:.4rem;">Configuración</p>
         <ul class="nav flex-column w-100">
             @if(Auth::user()->hasPermission('usuarios.gestionar'))
@@ -397,14 +407,7 @@
                 </a>
             </li>
             @endif
-            @if(Auth::user()->hasPermission('grupos.gestionar'))
-            <li class="nav-item">
-                <a class="nav-link {{ request()->routeIs('grupos.*') ? 'active' : '' }}" href="{{ route('grupos.index') }}">
-                    <i class="fas fa-layer-group"></i> Grupos de PCs
-                </a>
-            </li>
-            @endif
-            @if(Auth::user()->hasPermission('tipos.gestionar'))
+@if(Auth::user()->hasPermission('tipos.gestionar'))
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('tipos.*') ? 'active' : '' }}" href="{{ route('tipos.index') }}">
                     <i class="fas fa-tags"></i> Tipos de mensaje
@@ -423,6 +426,36 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 @stack('scripts')
+<script>
+(function () {
+    const URL_LISTA = '{{ route("panel.pcs-lista") }}';
+
+    function actualizarPcs() {
+        fetch(URL_LISTA)
+            .then(r => r.json())
+            .then(pcs => {
+                document.getElementById('sidebar-pcs-count').textContent = pcs.length;
+
+                const lista = document.getElementById('sidebar-pcs-lista');
+                if (pcs.length === 0) {
+                    lista.innerHTML = '<div style="color:#94A3B8;font-size:.8rem;padding:4px 0;">Sin PCs conectadas</div>';
+                    return;
+                }
+
+                lista.innerHTML = pcs.map(pc => `
+                    <div style="display:flex;align-items:center;gap:7px;padding:4px 2px;border-bottom:1px solid #f0f4f8;">
+                        <span style="width:8px;height:8px;border-radius:50%;background:#22C55E;flex-shrink:0;box-shadow:0 0 4px #22C55E;"></span>
+                        <span style="font-size:.82rem;color:#1A1A2E;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${pc.nombre}">${pc.nombre}</span>
+                    </div>
+                `).join('');
+            })
+            .catch(() => {});
+    }
+
+    actualizarPcs();
+    setInterval(actualizarPcs, 30000);
+})();
+</script>
 </body>
 </html>
 

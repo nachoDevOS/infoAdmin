@@ -17,7 +17,7 @@ class RegistroController extends Controller
         ]);
 
         $ip = $request->ip ?? $request->ip();
-        PcActiva::registrar($request->nombre, $ip, $request->grupo);
+        PcActiva::registrar($request->nombre, $ip);
 
         return response()->json(['ok' => true]);
     }

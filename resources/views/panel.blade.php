@@ -333,12 +333,9 @@
                     {{-- Destino --}}
                     <div class="mb-4">
                         <label class="form-label-mp">Destino</label>
-                        <select name="grupo_destino" class="form-control form-control-mp">
-                            <option value="">📢 Todas las PCs conectadas</option>
-                            @foreach($grupos as $g)
-                            <option value="{{ $g->nombre }}">👥 Solo grupo: {{ $g->nombre }}</option>
-                            @endforeach
-                        </select>
+                        <div class="form-control form-control-mp" style="background:#f8f9fa; color:#555;">
+                            📢 Todas las PCs conectadas
+                        </div>
                     </div>
 
                     {{-- Programar envío --}}

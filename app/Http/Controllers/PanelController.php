@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Events\MensajeEnviado;
-use App\Models\Grupo;
 use App\Models\Mensaje;
 use App\Models\PcActiva;
 use App\Models\TipoMensaje;
@@ -19,9 +18,8 @@ class PanelController extends Controller
     {
         $ultimosMensajes = Mensaje::latest()->limit(5)->get();
         $tipos           = TipoMensaje::activos();
-        $grupos          = Grupo::activos();
 
-        return view('panel', compact('ultimosMensajes', 'tipos', 'grupos'));
+        return view('panel', compact('ultimosMensajes', 'tipos'));
     }
 
     public function enviar(Request $request): JsonResponse
@@ -33,7 +31,6 @@ class PanelController extends Controller
                 'titulo'         => ['required', 'string', 'max:200'],
                 'cuerpo'         => ['required', 'string', 'max:20000'],
                 'archivo'        => ['nullable', 'file', 'max:20480', 'mimes:pdf,jpg,jpeg,png,gif'],
-                'grupo_destino'  => ['nullable', 'string', 'exists:grupos,nombre'],
                 'scheduled_at'   => ['nullable', 'date', 'after:now'],
             ]);
         } catch (ValidationException $e) {
@@ -41,8 +38,6 @@ class PanelController extends Controller
         }
 
         try {
-            $grupoDestino = $request->grupo_destino ?: null;
-
             $scheduledAt = $request->scheduled_at ? \Carbon\Carbon::parse($request->scheduled_at) : null;
             $estado      = $scheduledAt ? 'programado' : 'enviado';
 
@@ -51,7 +46,6 @@ class PanelController extends Controller
                 'titulo'        => $request->titulo,
                 'cuerpo'        => $request->cuerpo,
                 'remitente'     => $request->user()->name,
-                'grupo_destino' => $grupoDestino,
                 'scheduled_at'  => $scheduledAt,
                 'estado'        => $estado,
             ];
@@ -73,10 +67,7 @@ class PanelController extends Controller
 
             $mensaje = Mensaje::create($datos);
 
-            // Contar PCs objetivo (todas o solo las del grupo)
-            $pcsConectadas = $grupoDestino
-                ? PcActiva::activas()->where('grupo', $grupoDestino)->count()
-                : PcActiva::contarActivas();
+            $pcsConectadas = PcActiva::contarActivas();
 
             $mensaje->update(['total_pcs_enviado' => $pcsConectadas]);
 
@@ -108,5 +99,14 @@ class PanelController extends Controller
         return response()->json([
             'count' => PcActiva::contarActivas(),
         ]);
+    }
+
+    public function pcsLista(): JsonResponse
+    {
+        $pcs = PcActiva::activas()
+            ->orderBy('nombre')
+            ->get(['nombre', 'ip', 'updated_at']);
+
+        return response()->json($pcs);
     }
 }

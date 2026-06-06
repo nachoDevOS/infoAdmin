@@ -8,15 +8,11 @@ class PcActiva extends Model
 {
     protected $table = 'pcs_activas';
 
-    protected $fillable = ['nombre', 'ip', 'grupo'];
+    protected $fillable = ['nombre', 'ip'];
 
-    public static function registrar(string $nombre, string $ip, ?string $grupo = null): void
+    public static function registrar(string $nombre, string $ip): void
     {
-        $datos = ['ip' => $ip];
-        if ($grupo !== null) {
-            $datos['grupo'] = $grupo ?: null;
-        }
-        $pc = static::updateOrCreate(['nombre' => $nombre], $datos);
+        $pc = static::updateOrCreate(['nombre' => $nombre], ['ip' => $ip]);
         $pc->touch();
     }
 

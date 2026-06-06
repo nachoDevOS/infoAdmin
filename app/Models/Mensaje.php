@@ -11,7 +11,6 @@ class Mensaje extends Model
 
     protected $fillable = [
         'tipo', 'titulo', 'cuerpo', 'remitente',
-        'grupo_destino',
         'scheduled_at', 'estado',
         'tiene_archivo', 'archivo_nombre', 'archivo_ruta',
         'archivo_tipo', 'archivo_tamanio', 'total_pcs_enviado',

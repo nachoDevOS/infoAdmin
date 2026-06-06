@@ -13,8 +13,7 @@ class Role extends Model
         'historial.ver'      => 'Ver historial',
         'confirmaciones.ver' => 'Ver confirmaciones',
         'tipos.gestionar'    => 'Gestionar tipos de mensaje',
-        'grupos.gestionar'   => 'Gestionar grupos de PCs',
-        'usuarios.gestionar' => 'Gestionar usuarios',
+'usuarios.gestionar' => 'Gestionar usuarios',
         'roles.gestionar'    => 'Gestionar roles y permisos',
     ];
 

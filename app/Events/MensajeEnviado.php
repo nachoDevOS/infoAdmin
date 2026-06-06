@@ -39,7 +39,6 @@ class MensajeEnviado implements ShouldBroadcastNow
             'remitente'       => $this->mensaje->remitente,
             'timestamp'       => $this->mensaje->created_at?->format('Y-m-d H:i:s'),
             'mensaje_id'      => $this->mensaje->id,
-            'grupo_destino'   => $this->mensaje->grupo_destino,
             'tiene_archivo'   => $this->mensaje->tiene_archivo,
             'archivo_nombre'  => $this->mensaje->archivo_nombre,
             'archivo_url'     => $this->mensaje->archivo_url,
